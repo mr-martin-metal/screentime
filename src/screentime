@@ -1,6 +1,55 @@
 #!/bin/bash
+# screentime monitor
+#
 
-echo "This is screentime 0.1.0"
+PRODUCT="screentime device monitor 0.1.0"
+CFG="/etc/screentime/screentime.config"
 
+show_help_screen() {
+# help screen 
+# <<<
+	echo ' '
+	echo 'NAME'
+	echo '		  screentime'
+	echo ' '
+	echo 'SYNOPSIS'
+	echo '		  monitor on/off status of network interfaces listed in configuration'
+	echo ' '
+	echo 'DESCRIPTION'
+	echo '		  It pings IP address listed in the configuration file and creates'
+	echo '		  timestamp entry for specific IP address in the log file when'
+	echo '		  the ping response comes withng a second back'
+	return 0; # return 0 to trigger AND chaining 
+}
+# >>>
 
+logger() {
+# generic logging function
+# <<<
+	LOG="/var/log/screentime/screentime_online_log"
 
+	# STAMP_INT=`date +"%D %T,"`
+	STAMP_INT=`date +"%s."`
+	STR=`date +"%N"`
+	STAMP_FRAC=`echo "${STR:0:3}"`
+	echo -n $STAMP_INT >> $LOG
+	echo -n $STAMP_FRAC >> $LOG
+	echo " $1" >> $LOG
+}
+# >>>
+
+if [ "$1" == "-h" ]; then
+	show_help_screen && exit 0;
+fi
+
+while read line; do
+	ip=`echo ${line} | awk -F" " ' { print $1 }'`
+	text=`echo ${line} | awk -F" " ' { print $2 }'`
+
+	if [ ! "${ip}"XXX == "XXX" ]; then
+		result=`ping -t 2 -c 1 -W 1 ${ip} | grep "1 received" | wc -l`
+		if [ $result -eq 1 ]; then
+			logger "${ip}"
+		fi
+	fi
+done < "${CFG}"
